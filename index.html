@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Synchronized Stopwatches</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      text-align: center;
+    }
+    .stopwatch {
+      margin: 40px 0;
+    }
+    .display {
+      font-size: 2em;
+      margin: 10px;
+    }
+    button {
+      font-size: 1em;
+      margin: 5px;
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+    hr {
+      margin: 60px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="stopwatch">
+    <h2>Stopwatch (Top)</h2>
+    <div class="display" id="display1">00:00:00</div>
+    <button onclick="startStop()">Start</button>
+    <button onclick="reset()">Reset</button>
+  </div>
+
+  <hr>
+
+  <div class="stopwatch">
+    <h2>Stopwatch (Bottom)</h2>
+    <div class="display" id="display2">00:00:00</div>
+    <button onclick="startStop()">Start</button>
+    <button onclick="reset()">Reset</button>
+  </div>
+
+  <script>
+    let timer;
+    let running = false;
+    let seconds = 0;
+
+    function updateDisplay() {
+      let hrs = String(Math.floor(seconds / 3600)).padStart(2, '0');
+      let mins = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+      let secs = String(seconds % 60).padStart(2, '0');
+      document.getElementById('display1').textContent = `${hrs}:${mins}:${secs}`;
+      document.getElementById('display2').textContent = `${hrs}:${mins}:${secs}`;
+    }
+
+    function startStop() {
+      if (!running) {
+        running = true;
+        timer = setInterval(() => {
+          seconds++;
+          updateDisplay();
+        }, 1000);
+        document.querySelectorAll("button:nth-child(3)").forEach(btn => btn.textContent = "Pause");
+      } else {
+        running = false;
+        clearInterval(timer);
+        document.querySelectorAll("button:nth-child(3)").forEach(btn => btn.textContent = "Start");
+      }
+    }
+
+    function reset() {
+      running = false;
+      clearInterval(timer);
+      seconds = 0;
+      updateDisplay();
+      document.querySelectorAll("button:nth-child(3)").forEach(btn => btn.textContent = "Start");
+    }
+  </script>
+</body>
+</html>
