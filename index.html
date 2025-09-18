@@ -1,73 +1,108 @@
-<div id="exam-timer-top"></div>
-<div id="exam-timer-bottom"></div>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Exam Stopwatch</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 10px;
+    }
+    .time {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+    button {
+      margin: 5px;
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="time">00:00:00</div>
+  <button id="start">Start</button>
+  <button id="stop" disabled>Stop</button>
+  <button id="reset" disabled>Reset</button>
 
-<script>
-(function(){
-  let startTime = null;
-  let intervalId = null;
+  <script>
+    let intervalId = null;
 
-  const displays = [
-    document.getElementById("exam-timer-top"),
-    document.getElementById("exam-timer-bottom")
-  ];
+    // Restore state from localStorage
+    function getState() {
+      const raw = localStorage.getItem("examStopwatch");
+      return raw ? JSON.parse(raw) : { running:false, startTime:null, elapsed:0 };
+    }
 
-  function renderControls(display) {
-    display.innerHTML = `
-      <div style="font-family:sans-serif;text-align:center;margin:10px;">
-        <div class="time" style="font-size:24px;margin-bottom:5px;">00:00:00</div>
-        <button class="start">Start</button>
-        <button class="stop" disabled>Stop</button>
-        <button class="reset" disabled>Reset</button>
-      </div>`;
-  }
+    function saveState(state) {
+      localStorage.setItem("examStopwatch", JSON.stringify(state));
+    }
 
-  displays.forEach(renderControls);
+    function elapsedTime(state) {
+      if (state.running) {
+        return (Date.now() - state.startTime) + state.elapsed;
+      } 
+      return state.elapsed;
+    }
 
-  function updateDisplays(elapsed) {
-    let h = String(Math.floor(elapsed / 3600000)).padStart(2,"0");
-    let m = String(Math.floor((elapsed % 3600000) / 60000)).padStart(2,"0");
-    let s = String(Math.floor((elapsed % 60000) / 1000)).padStart(2,"0");
-    displays.forEach(d => {
-      d.querySelector(".time").textContent = `${h}:${m}:${s}`;
-    });
-  }
+    function format(ms) {
+      let h = String(Math.floor(ms/3600000)).padStart(2,"0");
+      let m = String(Math.floor((ms%3600000)/60000)).padStart(2,"0");
+      let s = String(Math.floor((ms%60000)/1000)).padStart(2,"0");
+      return `${h}:${m}:${s}`;
+    }
 
-  function startTimer() {
-    if (intervalId) return;
-    startTime = Date.now();
-    intervalId = setInterval(()=>{
-      updateDisplays(Date.now()-startTime);
-    },500);
-    toggleButtons(true);
-  }
+    function render() {
+      let state = getState();
+      document.querySelector(".time").textContent = format(elapsedTime(state));
+      document.getElementById("start").disabled = state.running;
+      document.getElementById("stop").disabled = !state.running;
+      document.getElementById("reset").disabled = state.elapsed === 0 && !state.running;
+    }
 
-  function stopTimer() {
-    if (!intervalId) return;
-    clearInterval(intervalId); intervalId=null;
-    updateDisplays(Date.now()-startTime);
-    toggleButtons(false);
-  }
+    function tick() {
+      render();
+    }
 
-  function resetTimer() {
-    startTime = null;
-    updateDisplays(0);
-  }
+    function start() {
+      let state = getState();
+      if (!state.running) {
+        state.running = true;
+        state.startTime = Date.now();
+        saveState(state);
+        render();
+      }
+    }
 
-  function toggleButtons(isRunning){
-    displays.forEach(d=>{
-      d.querySelector(".start").disabled = isRunning;
-      d.querySelector(".stop").disabled = !isRunning;
-      d.querySelector(".reset").disabled = false;
-    });
-  }
+    function stop() {
+      let state = getState();
+      if (state.running) {
+        state.elapsed = elapsedTime(state);
+        state.running = false;
+        saveState(state);
+        render();
+      }
+    }
 
-  // Hook up events
-  displays.forEach(d=>{
-    d.querySelector(".start").addEventListener("click",startTimer);
-    d.querySelector(".stop").addEventListener("click",stopTimer);
-    d.querySelector(".reset").addEventListener("click",resetTimer);
-  });
+    function reset() {
+      saveState({ running:false, startTime:null, elapsed:0 });
+      render();
+    }
 
-  updateDisplays(0);
-})();
-</script>
+    // Events
+    document.getElementById("start").onclick = start;
+    document.getElementById("stop").onclick = stop;
+    document.getElementById("reset").onclick = reset;
+
+    // Keep refreshing display
+    setInterval(tick, 500);
+
+    // Sync between tabs/embeds (using storage event)
+    window.addEventListener("storage", render);
+
+    // Initial render
+    render();
+  </script>
+</body>
+</html>
