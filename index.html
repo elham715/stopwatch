@@ -1,84 +1,73 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Synchronized Stopwatches</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      text-align: center;
-    }
-    .stopwatch {
-      margin: 40px 0;
-    }
-    .display {
-      font-size: 2em;
-      margin: 10px;
-    }
-    button {
-      font-size: 1em;
-      margin: 5px;
-      padding: 10px 20px;
-      cursor: pointer;
-    }
-    hr {
-      margin: 60px 0;
-    }
-  </style>
-</head>
-<body>
-  <div class="stopwatch">
-    <h2>Stopwatch (Top)</h2>
-    <div class="display" id="display1">00:00:00</div>
-    <button onclick="startStop()">Start</button>
-    <button onclick="reset()">Reset</button>
-  </div>
+<div id="exam-timer-top"></div>
+<div id="exam-timer-bottom"></div>
 
-  <hr>
+<script>
+(function(){
+  let startTime = null;
+  let intervalId = null;
 
-  <div class="stopwatch">
-    <h2>Stopwatch (Bottom)</h2>
-    <div class="display" id="display2">00:00:00</div>
-    <button onclick="startStop()">Start</button>
-    <button onclick="reset()">Reset</button>
-  </div>
+  const displays = [
+    document.getElementById("exam-timer-top"),
+    document.getElementById("exam-timer-bottom")
+  ];
 
-  <script>
-    let timer;
-    let running = false;
-    let seconds = 0;
+  function renderControls(display) {
+    display.innerHTML = `
+      <div style="font-family:sans-serif;text-align:center;margin:10px;">
+        <div class="time" style="font-size:24px;margin-bottom:5px;">00:00:00</div>
+        <button class="start">Start</button>
+        <button class="stop" disabled>Stop</button>
+        <button class="reset" disabled>Reset</button>
+      </div>`;
+  }
 
-    function updateDisplay() {
-      let hrs = String(Math.floor(seconds / 3600)).padStart(2, '0');
-      let mins = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
-      let secs = String(seconds % 60).padStart(2, '0');
-      document.getElementById('display1').textContent = `${hrs}:${mins}:${secs}`;
-      document.getElementById('display2').textContent = `${hrs}:${mins}:${secs}`;
-    }
+  displays.forEach(renderControls);
 
-    function startStop() {
-      if (!running) {
-        running = true;
-        timer = setInterval(() => {
-          seconds++;
-          updateDisplay();
-        }, 1000);
-        document.querySelectorAll("button:nth-child(3)").forEach(btn => btn.textContent = "Pause");
-      } else {
-        running = false;
-        clearInterval(timer);
-        document.querySelectorAll("button:nth-child(3)").forEach(btn => btn.textContent = "Start");
-      }
-    }
+  function updateDisplays(elapsed) {
+    let h = String(Math.floor(elapsed / 3600000)).padStart(2,"0");
+    let m = String(Math.floor((elapsed % 3600000) / 60000)).padStart(2,"0");
+    let s = String(Math.floor((elapsed % 60000) / 1000)).padStart(2,"0");
+    displays.forEach(d => {
+      d.querySelector(".time").textContent = `${h}:${m}:${s}`;
+    });
+  }
 
-    function reset() {
-      running = false;
-      clearInterval(timer);
-      seconds = 0;
-      updateDisplay();
-      document.querySelectorAll("button:nth-child(3)").forEach(btn => btn.textContent = "Start");
-    }
-  </script>
-</body>
-</html>
+  function startTimer() {
+    if (intervalId) return;
+    startTime = Date.now();
+    intervalId = setInterval(()=>{
+      updateDisplays(Date.now()-startTime);
+    },500);
+    toggleButtons(true);
+  }
+
+  function stopTimer() {
+    if (!intervalId) return;
+    clearInterval(intervalId); intervalId=null;
+    updateDisplays(Date.now()-startTime);
+    toggleButtons(false);
+  }
+
+  function resetTimer() {
+    startTime = null;
+    updateDisplays(0);
+  }
+
+  function toggleButtons(isRunning){
+    displays.forEach(d=>{
+      d.querySelector(".start").disabled = isRunning;
+      d.querySelector(".stop").disabled = !isRunning;
+      d.querySelector(".reset").disabled = false;
+    });
+  }
+
+  // Hook up events
+  displays.forEach(d=>{
+    d.querySelector(".start").addEventListener("click",startTimer);
+    d.querySelector(".stop").addEventListener("click",stopTimer);
+    d.querySelector(".reset").addEventListener("click",resetTimer);
+  });
+
+  updateDisplays(0);
+})();
+</script>
